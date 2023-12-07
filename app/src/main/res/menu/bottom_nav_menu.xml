@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/navigation_host"
+        android:icon="@drawable/baseline_rocket_launch_24"
+        android:title="@string/title_host" />
+
+    <item
+        android:id="@+id/navigation_join"
+        android:icon="@drawable/baseline_videogame_asset_24"
+        android:title="@string/title_join" />
+
+    <item
+        android:id="@+id/navigation_user"
+        android:icon="@drawable/baseline_emoji_people_24"
+        android:title="@string/title_user" />
+
+</menu>

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "268216058458",
+    "project_id": "hashgame-5154e",
+    "storage_bucket": "hashgame-5154e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:268216058458:android:fa2d6d0fe6eed62daf0e63",
+        "android_client_info": {
+          "package_name": "ipca.game.hash"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJWzGGq0D1cOIFvarEpKuxs8cJuBm82CI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

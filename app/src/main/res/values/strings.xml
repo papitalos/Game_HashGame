@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Hash Game</string>
+    <string name="title_activity_main">MainActivity</string>
+    <string name="title_host">Host Game</string>
+    <string name="title_join">Join Game</string>
+    <string name="title_user">User</string>
+</resources>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="aquacyan">#00FFFF</color>
+    <color name="darkturquoise">#00CED1</color>
+    <color name="turquoise">#40E0D0</color>
+    <color name="mediumturquoise">#48D1CC</color>
+    <color name="lightseagreen">#20B2AA</color>
+    <color name="darkcyan">#008B8B</color>
+    <color name="teal">#008080</color>
+    <color name="aquamarine">#7FFFD4</color>
+    <color name="mediumaquamarine">#66CDAA</color>
+    <color name="cadetblue">#5F9EA0</color>
+</resources>
