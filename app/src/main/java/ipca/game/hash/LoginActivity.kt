@@ -11,7 +11,6 @@ import com.google.firebase.auth.auth
 import ipca.game.hash.RegisterActivity
 import ipca.game.hash.databinding.ActivityLoginBinding
 
-const val TAG = "hashgame"
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var auth: FirebaseAuth
