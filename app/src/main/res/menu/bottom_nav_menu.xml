@@ -2,9 +2,9 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
-        android:id="@+id/navigation_host"
-        android:icon="@drawable/baseline_rocket_launch_24"
-        android:title="@string/title_host" />
+        android:id="@+id/navigation_invite"
+        android:icon="@drawable/baseline_people_24"
+        android:title="@string/title_invite" />
 
     <item
         android:id="@+id/navigation_join"
@@ -15,5 +15,7 @@
         android:id="@+id/navigation_user"
         android:icon="@drawable/baseline_emoji_people_24"
         android:title="@string/title_user" />
+
+
 
 </menu>

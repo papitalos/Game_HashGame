@@ -3,13 +3,19 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/mobile_navigation"
-    app:startDestination="@+id/navigation_host">
+    app:startDestination="@id/navigation_join">
 
     <fragment
-        android:id="@+id/navigation_host"
-        android:name="ipca.game.hash.ui.host.HostFragment"
-        android:label="@string/title_host"
-        tools:layout="@layout/fragment_host" />
+        android:id="@+id/navigation_invite"
+        android:name="ipca.game.hash.ui.invites.InviteFragment"
+        android:label="@string/title_invite"
+        tools:layout="@layout/fragment_invite" />
+
+    <fragment
+        android:id="@+id/navigation_user"
+        android:name="ipca.game.hash.ui.user.UserFragment"
+        android:label="@string/title_user"
+        tools:layout="@layout/fragment_user" />
 
     <fragment
         android:id="@+id/navigation_join"
@@ -17,9 +23,4 @@
         android:label="@string/title_join"
         tools:layout="@layout/fragment_join" />
 
-    <fragment
-        android:id="@+id/navigation_user"
-        android:name="ipca.game.hash.ui.user.UserFragment"
-        android:label="@string/title_user"
-        tools:layout="@layout/fragment_user" />
 </navigation>
