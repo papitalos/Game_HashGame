@@ -151,16 +151,17 @@ class JoinFragment : Fragment() {
             return rootView
         }
         private fun sendFCM(inviterId: String) {
-            // Obtenha o token FCM do usuário que convidou
             FirebaseFirestore.getInstance().collection("users")
                 .document(inviterId)
                 .get()
                 .addOnSuccessListener { document ->
                     if (document.exists()) {
-                        val fcmToken = document.getString("uid")
+                        val fcmToken = document.getString("fcmToken")
 
                         // Verifique se o token FCM está disponível
                         if (!fcmToken.isNullOrBlank()) {
+                            Log.d(TAG, "FCM Token encontrado para $inviterId: $fcmToken")
+
                             // Construa a mensagem FCM
                             val remoteMessage = RemoteMessage.Builder(fcmToken)
                                 .setData(
@@ -181,12 +182,12 @@ class JoinFragment : Fragment() {
                     } else {
                         Log.d(TAG, "Documento do usuário não encontrado para $inviterId")
                     }
-
                 }
                 .addOnFailureListener { e ->
                     Log.e(TAG, "Erro ao obter token FCM para $inviterId", e)
                 }
         }
+
 
 
 

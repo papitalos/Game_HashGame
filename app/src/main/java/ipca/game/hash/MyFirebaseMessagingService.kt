@@ -20,10 +20,6 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             if (messageType == "inviteAccepted") {
                 val inviterId = remoteMessage.data["inviterId"]
                 Log.d(TAG, "Convite aceito do usuário: $inviterId")
-
-                // Intent para abrir HashActivity
-                val intent = Intent(this@MyFirebaseMessagingService, HashActivity::class.java)
-                startActivity(intent)
             }
         }
 
@@ -32,7 +28,9 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             Log.d(TAG, "Message Notification Body: ${it.body}")
         }
 
-        // Adicione sua lógica aqui para abrir a HashActivity ou realizar outras ações necessárias.
+        // Intent para abrir HashActivity
+        val intent = Intent(this@MyFirebaseMessagingService, HashActivity::class.java)
+        startActivity(intent)
     }
 
     override fun onNewToken(token: String) {
