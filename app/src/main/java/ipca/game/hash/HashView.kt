@@ -148,6 +148,7 @@ class HashView : View {
                     checkForWinner()
 
                     isPoints = !isPoints
+
                     onTurnChanged?.invoke(isPoints)
                     invalidate()
                     return true

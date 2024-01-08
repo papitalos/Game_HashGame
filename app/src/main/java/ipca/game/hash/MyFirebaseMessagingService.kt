@@ -1,5 +1,6 @@
 package ipca.game.hash
 
+import android.content.Intent
 import android.util.Log
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -9,13 +10,21 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     private val TAG = "MyFirebaseMsgService"
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
-        // Este método é chamado quando uma mensagem é recebida.
-        // Você pode adicionar sua lógica para tratar a mensagem aqui.
         Log.d(TAG, "From: ${remoteMessage.from}")
 
-        // Exemplo de como acessar dados da mensagem
         if (remoteMessage.data.isNotEmpty()) {
             Log.d(TAG, "Message data payload: ${remoteMessage.data}")
+
+            // Verifique se é um convite aceito
+            val messageType = remoteMessage.data["messageType"]
+            if (messageType == "inviteAccepted") {
+                val inviterId = remoteMessage.data["inviterId"]
+                Log.d(TAG, "Convite aceito do usuário: $inviterId")
+
+                // Intent para abrir HashActivity
+                val intent = Intent(this@MyFirebaseMessagingService, HashActivity::class.java)
+                startActivity(intent)
+            }
         }
 
         // Exemplo de como acessar a notificação da mensagem

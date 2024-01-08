@@ -125,6 +125,11 @@ class JoinFragment : Fragment() {
                     .update("status", "accepted")
                     .addOnSuccessListener {
 
+                        FirebaseMessaging.getInstance().subscribeToTopic(invite.inviterId)
+                        Log.d(TAG, "Subscribed to topic: ${invite.inviterId}")
+                        // Agora envie a mensagem FCM
+                        sendFCM(invite.inviterId)
+
 
                         // Intent para abrir HashActivity
                         val intent = Intent(context, HashActivity::class.java)
@@ -146,8 +151,44 @@ class JoinFragment : Fragment() {
             return rootView
         }
         private fun sendFCM(inviterId: String) {
+            // Obtenha o token FCM do usuário que convidou
+            FirebaseFirestore.getInstance().collection("users")
+                .document(inviterId)
+                .get()
+                .addOnSuccessListener { document ->
+                    if (document.exists()) {
+                        val fcmToken = document.getString("uid")
 
+                        // Verifique se o token FCM está disponível
+                        if (!fcmToken.isNullOrBlank()) {
+                            // Construa a mensagem FCM
+                            val remoteMessage = RemoteMessage.Builder(fcmToken)
+                                .setData(
+                                    mapOf(
+                                        "messageType" to "inviteAccepted",
+                                        "inviterId" to inviterId
+                                    )
+                                )
+                                // Adicione outros dados que deseja enviar na mensagem
+                                .build()
+
+                            // Envie a mensagem FCM
+                            FirebaseMessaging.getInstance().send(remoteMessage)
+                            Log.d(TAG, "Mensagem FCM enviada com sucesso para $inviterId")
+                        } else {
+                            Log.d(TAG, "Token FCM não encontrado para $inviterId")
+                        }
+                    } else {
+                        Log.d(TAG, "Documento do usuário não encontrado para $inviterId")
+                    }
+
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "Erro ao obter token FCM para $inviterId", e)
+                }
         }
+
+
 
 
         fun removeInvite(invite: Invite, position: Int) {
