@@ -125,19 +125,6 @@ class JoinFragment : Fragment() {
                     .update("status", "accepted")
                     .addOnSuccessListener {
 
-                        // Envia uma mensagem para o outro usuario de que o convite foi aceite
-                        FirebaseMessaging.getInstance().subscribeToTopic(invite.inviterId)
-                            .addOnCompleteListener(OnCompleteListener { task ->
-                                if (task.isSuccessful) {
-                                    Log.d(TAG, "Subscribed to topic: ${invite.inviterId}")
-                                    // Agora envie a mensagem FCM
-                                    sendFCM(invite.inviterId)
-                                } else {
-                                    Log.w(TAG, "Subscribe to topic failed", task.exception)
-                                }
-                            })
-
-
 
                         // Intent para abrir HashActivity
                         val intent = Intent(context, HashActivity::class.java)

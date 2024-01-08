@@ -61,7 +61,7 @@ class RegisterActivity : AppCompatActivity() {
             Log.i("RegisterActivity","${email}, ${password}," )
                 if (task.isSuccessful) {
                     // Sign in success, update UI with the signed-in user's information
-                    val intent = Intent(this@RegisterActivity, MainActivity::class.java)
+                    val intent = Intent(this@RegisterActivity, LoginActivity::class.java)
                     startActivity(intent)
                     finish()
                 } else {

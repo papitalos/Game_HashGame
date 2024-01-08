@@ -14,7 +14,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@drawable/ic_launcher_foreground"
-        tools:srcCompat="@drawable/dall_e_2023_12_07_11_57_19___a_minimalistic_and_simple_logo_for_a_hashgame_app__featuring_a_hashgame_grid_with_a_subtle_shadow__the_hashgame_grid_is_composed_of_a_3x3_matrix__with" />
+        tools:srcCompat="@drawable/logo" />
 
     <EditText
         android:id="@+id/editTextEmailAddress"
