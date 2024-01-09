@@ -1,16 +1,14 @@
 package ipca.game.hash
 
 import android.content.Intent
+import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.ktx.auth
+import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
-import com.google.firebase.messaging.FirebaseMessaging
 import ipca.game.hash.databinding.ActivityLoginBinding
 
 class LoginActivity : AppCompatActivity() {
@@ -26,7 +24,7 @@ class LoginActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         auth = Firebase.auth
-        db = Firebase.firestore
+        db = FirebaseFirestore.getInstance()
 
         binding.buttonLogin.setOnClickListener {
 
@@ -35,34 +33,28 @@ class LoginActivity : AppCompatActivity() {
 
             auth.signInWithEmailAndPassword(email, password).addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
-                    // Verificar se o usuário já existe no Firestore
                     val userId = auth.currentUser?.uid
                     userId?.let { uid ->
                         db.collection("users").document(uid).get()
                             .addOnSuccessListener { document ->
                                 if (!document.exists()) {
                                     val nickname = uid.take(6)
-
-                                    // Obtenha o FCM token
-                                    FirebaseMessaging.getInstance().token.addOnSuccessListener { fcmToken ->
-                                        val user = hashMapOf(
-                                            "email" to email,
-                                            "nickname" to nickname,
-                                            "uid" to uid,
-                                            "isOnline" to true,
-                                            "fcmToken" to fcmToken
-                                        )
-                                        db.collection("users").document(uid).set(user)
-                                            .addOnSuccessListener {
-                                                val intent = Intent(this@LoginActivity, MainActivity::class.java)
-                                                startActivity(intent)
-                                                finish()
-                                            }
-                                            .addOnFailureListener { e ->
-                                                Log.w(TAG, "Erro ao adicionar usuário ao Firestore", e)
-                                                Toast.makeText(this, "Erro ao registrar usuário no banco de dados", Toast.LENGTH_SHORT).show()
-                                            }
-                                    }
+                                    val user = hashMapOf(
+                                        "email" to email,
+                                        "nickname" to nickname,
+                                        "uid" to uid,
+                                        "isOnline" to true
+                                    )
+                                    db.collection("users").document(uid).set(user)
+                                        .addOnSuccessListener {
+                                            val intent = Intent(this@LoginActivity, MainActivity::class.java)
+                                            startActivity(intent)
+                                            finish()
+                                        }
+                                        .addOnFailureListener { e ->
+                                            Log.w(TAG, "Erro ao adicionar usuário ao Firestore", e)
+                                            Toast.makeText(this, "Erro ao registrar usuário no banco de dados", Toast.LENGTH_SHORT).show()
+                                        }
                                 } else {
                                     // Usuário já existe, continue com o processo de login
                                     db.collection("users").document(uid).update("isOnline", true)

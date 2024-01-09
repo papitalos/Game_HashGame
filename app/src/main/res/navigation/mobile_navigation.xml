@@ -23,4 +23,10 @@
         android:label="@string/title_join"
         tools:layout="@layout/fragment_join" />
 
+    <fragment
+        android:id="@+id/navigation_games"
+        android:name="ipca.game.hash.ui.games.GameFragment"
+        android:label="@string/title_games"
+        tools:layout="@layout/fragment_games" />
+
 </navigation>

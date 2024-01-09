@@ -8,8 +8,13 @@
 
     <item
         android:id="@+id/navigation_join"
-        android:icon="@drawable/baseline_videogame_asset_24"
+        android:icon="@drawable/baseline_rocket_launch_24"
         android:title="@string/title_join" />
+
+    <item
+        android:id="@+id/navigation_games"
+        android:icon="@drawable/baseline_videogame_asset_24"
+        android:title="@string/title_games" />
 
     <item
         android:id="@+id/navigation_user"

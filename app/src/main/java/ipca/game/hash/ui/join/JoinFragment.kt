@@ -24,6 +24,7 @@ import ipca.game.hash.OnlineUsers
 import ipca.game.hash.R
 import ipca.game.hash.TAG
 import ipca.game.hash.databinding.FragmentJoinBinding
+import java.util.UUID
 
 class JoinFragment : Fragment() {
 
@@ -118,32 +119,38 @@ class JoinFragment : Fragment() {
             textView.text = invite.inviterName
 
             buttonAccept.setOnClickListener {
-
-
                 FirebaseFirestore.getInstance().collection("invites")
                     .document(invite.inviteId)
                     .update("status", "accepted")
                     .addOnSuccessListener {
 
-                        FirebaseMessaging.getInstance().subscribeToTopic(invite.inviterId)
-                        Log.d(TAG, "Subscribed to topic: ${invite.inviterId}")
-                        // Agora envie a mensagem FCM
-                        sendFCM(invite.inviterId)
+                        // Crie uma nova coleção "games" e adicione um documento com os dados dos usuários
+                        val gamesCollection = FirebaseFirestore.getInstance().collection("games")
+                        val gameId = UUID.randomUUID().toString() // Gera um ID aleatório para o jogo
+                        val gameData = hashMapOf(
+                            "gameId" to gameId,
+                            "id1" to invite.inviterId,
+                            "id2" to invite.invitedId,
+                            "turno" to invite.inviterId
+                        )
 
+                        gamesCollection.add(gameData)
+                            .addOnSuccessListener { documentReference ->
+                                Log.d(TAG, "Jogo criado com ID: $gameId")
 
-                        // Intent para abrir HashActivity
-                        val intent = Intent(context, HashActivity::class.java)
-                        startActivity(intent)
-                        // Após aceitar o convite, remova-o
-                        removeInvite(invite, position)
+                                // Após aceitar o convite, remova-o
+                                removeInvite(invite, position)
+                            }
+                            .addOnFailureListener { e ->
+                                Log.w(TAG, "Erro ao criar jogo", e)
+                            }
                     }
                     .addOnFailureListener { e ->
                         Log.w(TAG, "Erro ao aceitar convite", e)
                     }
-
-
-
             }
+
+
             buttonDecline.setOnClickListener {
                 removeInvite(invite, position)
             }
@@ -160,7 +167,7 @@ class JoinFragment : Fragment() {
 
                         // Verifique se o token FCM está disponível
                         if (!fcmToken.isNullOrBlank()) {
-                            Log.d(TAG, "FCM Token encontrado para $inviterId: $fcmToken")
+                            Log.e(TAG, "FCM Token encontrado para $inviterId: $fcmToken")
 
                             // Construa a mensagem FCM
                             val remoteMessage = RemoteMessage.Builder(fcmToken)
@@ -175,12 +182,12 @@ class JoinFragment : Fragment() {
 
                             // Envie a mensagem FCM
                             FirebaseMessaging.getInstance().send(remoteMessage)
-                            Log.d(TAG, "Mensagem FCM enviada com sucesso para $inviterId")
+                            Log.e(TAG, "Mensagem FCM enviada com sucesso para $inviterId")
                         } else {
-                            Log.d(TAG, "Token FCM não encontrado para $inviterId")
+                            Log.e(TAG, "Token FCM não encontrado para $inviterId")
                         }
                     } else {
-                        Log.d(TAG, "Documento do usuário não encontrado para $inviterId")
+                        Log.e(TAG, "Documento do usuário não encontrado para $inviterId")
                     }
                 }
                 .addOnFailureListener { e ->

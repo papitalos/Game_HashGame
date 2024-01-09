@@ -136,14 +136,14 @@ class InviteFragment : Fragment() {
                 .get()
                 .addOnSuccessListener { documents ->
                     if (documents.isEmpty) {
-                        callback(false) // Não há convites pendentes
+                        callback(false)
                     } else {
-                        callback(true) // Existe um convite pendente
+                        callback(true)
                     }
                 }
                 .addOnFailureListener { e ->
                     Log.w(TAG, "Erro ao verificar convites pendentes", e)
-                    callback(false) // Em caso de falha, permita enviar um novo convite
+                    callback(false)
                 }
         }
         fun sendInvite(inviterId: String, inviterName: String, invitedId: String) {
@@ -156,10 +156,6 @@ class InviteFragment : Fragment() {
 
             FirebaseFirestore.getInstance().collection("invites")
                 .add(inviteData)
-                .addOnSuccessListener { documentReference ->
-                    // Aqui você pode obter o ID do convite se necessário
-                    val inviteId = documentReference.id
-                }
                 .addOnFailureListener { e ->
                     Log.w(TAG, "Erro ao enviar convite", e)
                 }
