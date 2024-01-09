@@ -12,6 +12,7 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
 import ipca.game.hash.Game
@@ -19,8 +20,6 @@ import ipca.game.hash.HashActivity
 import ipca.game.hash.R
 import ipca.game.hash.TAG
 import ipca.game.hash.databinding.FragmentGamesBinding
-import ipca.game.hash.databinding.FragmentInviteBinding
-import ipca.game.hash.ui.invites.InviteViewModel
 
 
 class GameFragment : Fragment() {
@@ -37,31 +36,45 @@ class GameFragment : Fragment() {
     private val binding get() = _binding!!
 
 
+    private fun getCurrentUserId(): String {
+        val auth = FirebaseAuth.getInstance()
+        val user = auth.currentUser
+        return user?.uid.orEmpty()
+    }
+
     fun fetchExistingGames() {
+        val currentUserUid = getCurrentUserId() // Obtenha o uid atual do usuário
+
+        // Verifica se o uid está presente em qualquer um dos campos id1 ou id2
         db = Firebase.firestore
-        db.collection("games")
-            .addSnapshotListener { snapshots, e ->
-                if (e != null) {
-                    Log.w(TAG, "Erro ao buscar jogos existentes", e)
-                    return@addSnapshotListener
-                }
+        val query = db.collection("games")
+            .whereArrayContainsAny("players", listOf(currentUserUid))
+        query.addSnapshotListener { snapshots, e ->
+            if (e != null) {
+                Log.w(TAG, "Erro ao buscar jogos existentes", e)
+                return@addSnapshotListener
+            }
 
-                existing_games.clear() // Limpa a lista antes de adicionar novos jogos
+            // Limpa a lista antes de adicionar novos jogos
+            existing_games.clear()
 
-                for (doc in snapshots!!) {
-                    val gameId = doc.id
-                    val id1 = doc.getString("id_1")
-                    val id2 = doc.getString("id_2")
-                    val turno = doc.getString("turno")
+            for (doc in snapshots!!) {
+                val gameId = doc.getString("gameId")
+                val id1 = doc.getString("id1")
+                val id2 = doc.getString("id2")
+                val turno = doc.getString("turno")
 
-                    // Crie uma instância de Game e adicione à lista
-                    val game = Game(gameId, id1.orEmpty(), id2.orEmpty(), turno.orEmpty())
-                    existing_games.add(game)
-                }
+                // Crie uma instância de Game e adicione à lista
+                val game = Game(gameId, id1, id2, turno)
+                existing_games.add(game)
+            }
 
+            activity?.runOnUiThread {
                 adapter.notifyDataSetChanged() // Notifica o adaptador que os dados mudaram
             }
+        }
     }
+
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -120,19 +133,32 @@ class GameFragment : Fragment() {
             textView.text = games.gameId
 
             buttonJoinGame.setOnClickListener {
-                // Iniciar a HashActivity ao clicar no botão
-                val intent = Intent(context, HashActivity::class.java)
-                // Você pode passar dados extras para a atividade, se necessário
-                intent.putExtra("gameId", games.gameId)
-                intent.putExtra("id1", games.id1)
-                intent.putExtra("id2", games.id2)
-                intent.putExtra("turno", games.turno)
-
-                context?.startActivity(intent)
+                val game = getItem(position) as Game
+                loadGameAndStartHashActivity(game.gameId)
             }
 
             return rootView
         }
+    }
 
+    private fun loadGameAndStartHashActivity(gameId: String?) {
+        val gamesCollection = FirebaseFirestore.getInstance().collection("games")
+        if (gameId != null) {
+            gamesCollection.document(gameId).get().addOnSuccessListener { document ->
+                if (document != null && document.exists()) {
+                    val gameData = document.data
+                    val currentTurn = gameData?.get("turno") as? String
+
+                    val intent = Intent(context, HashActivity::class.java)
+                    intent.putExtra("gameId", gameId)
+                    intent.putExtra("turno", currentTurn)
+                    context?.startActivity(intent)
+                } else {
+                    Log.d(TAG, "Nenhum jogo encontrado com ID: $gameId")
+                }
+            }.addOnFailureListener { e ->
+                Log.w(TAG, "Erro ao carregar jogo", e)
+            }
+        }
     }
 }

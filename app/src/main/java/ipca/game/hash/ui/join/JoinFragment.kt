@@ -25,6 +25,7 @@ import ipca.game.hash.R
 import ipca.game.hash.TAG
 import ipca.game.hash.databinding.FragmentJoinBinding
 import java.util.UUID
+import kotlin.random.Random
 
 class JoinFragment : Fragment() {
 
@@ -126,16 +127,20 @@ class JoinFragment : Fragment() {
 
                         // Crie uma nova coleção "games" e adicione um documento com os dados dos usuários
                         val gamesCollection = FirebaseFirestore.getInstance().collection("games")
-                        val gameId = UUID.randomUUID().toString() // Gera um ID aleatório para o jogo
+
+                        // Gera uma string aleatória de 4 caracteres alfanuméricos
+                        val gameId = generateRandomId()
+
                         val gameData = hashMapOf(
                             "gameId" to gameId,
-                            "id1" to invite.inviterId,
-                            "id2" to invite.invitedId,
+                            "players" to listOf(invite.inviterId, invite.invitedId),
                             "turno" to invite.inviterId
                         )
 
-                        gamesCollection.add(gameData)
-                            .addOnSuccessListener { documentReference ->
+                        // Use o próprio ID gerado como nome do documento
+                        gamesCollection.document(gameId)
+                            .set(gameData)
+                            .addOnSuccessListener {
                                 Log.d(TAG, "Jogo criado com ID: $gameId")
 
                                 // Após aceitar o convite, remova-o
@@ -151,53 +156,23 @@ class JoinFragment : Fragment() {
             }
 
 
+
             buttonDecline.setOnClickListener {
                 removeInvite(invite, position)
             }
 
             return rootView
         }
-        private fun sendFCM(inviterId: String) {
-            FirebaseFirestore.getInstance().collection("users")
-                .document(inviterId)
-                .get()
-                .addOnSuccessListener { document ->
-                    if (document.exists()) {
-                        val fcmToken = document.getString("fcmToken")
 
-                        // Verifique se o token FCM está disponível
-                        if (!fcmToken.isNullOrBlank()) {
-                            Log.e(TAG, "FCM Token encontrado para $inviterId: $fcmToken")
 
-                            // Construa a mensagem FCM
-                            val remoteMessage = RemoteMessage.Builder(fcmToken)
-                                .setData(
-                                    mapOf(
-                                        "messageType" to "inviteAccepted",
-                                        "inviterId" to inviterId
-                                    )
-                                )
-                                // Adicione outros dados que deseja enviar na mensagem
-                                .build()
-
-                            // Envie a mensagem FCM
-                            FirebaseMessaging.getInstance().send(remoteMessage)
-                            Log.e(TAG, "Mensagem FCM enviada com sucesso para $inviterId")
-                        } else {
-                            Log.e(TAG, "Token FCM não encontrado para $inviterId")
-                        }
-                    } else {
-                        Log.e(TAG, "Documento do usuário não encontrado para $inviterId")
-                    }
+        private fun generateRandomId(): String {
+            val characters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            return buildString {
+                repeat(4) {
+                    append(characters[Random.nextInt(characters.length)])
                 }
-                .addOnFailureListener { e ->
-                    Log.e(TAG, "Erro ao obter token FCM para $inviterId", e)
-                }
+            }
         }
-
-
-
-
 
         fun removeInvite(invite: Invite, position: Int) {
             // Remova o convite do Firestore

@@ -12,6 +12,9 @@ import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FirebaseFirestore
 
 class HashView : View {
     var points = arrayListOf<Point>()
@@ -23,6 +26,15 @@ class HashView : View {
 
     private var onTurnChanged : ((Boolean)->Unit)? = null
 
+    private var gameId: String? = ""
+    private var turno: String? = ""
+
+    fun setGameInfo(gameId: String?, turno: String?) {
+        this.gameId = gameId
+        this.turno = turno
+
+        setupBoardListener()
+    }
     fun setOnTurnChanged (callback: (Boolean)->Unit) {
         onTurnChanged = callback
     }
@@ -103,6 +115,53 @@ class HashView : View {
     }
 
 
+    fun updateBoardFromFirestore() {
+        val db = FirebaseFirestore.getInstance()
+        gameId?.let { gameId ->
+            db.collection("games").document(gameId)
+                .collection("jogadas")
+                .get()
+                .addOnSuccessListener { documents ->
+                    points.clear()
+                    crosses.clear()
+                    for (document in documents) {
+                        val symbol = document.getString("symbol")
+                        val position = document.get("position") as List<Number>?
+                        if (position != null) {
+                            val point = Point(position[0].toInt(), position[1].toInt())
+                            if (symbol == "o") {
+                                points.add(point)
+                            } else if (symbol == "x") {
+                                crosses.add(point)
+                            }
+                        }
+                    }
+                    invalidate() // Redesenhar o tabuleiro
+                }
+                .addOnFailureListener { e ->
+                    Log.e("UpdateBoard", "Erro ao atualizar o tabuleiro", e)
+                }
+        }
+    }
+
+    fun setupBoardListener() {
+        val db = FirebaseFirestore.getInstance()
+        gameId?.let { gameId ->
+            db.collection("games").document(gameId)
+                .collection("jogadas")
+                .addSnapshotListener { snapshots, e ->
+                    if (e != null) {
+                        Log.w("BoardListener", "Ouça falhou.", e)
+                        return@addSnapshotListener
+                    }
+
+                    if (snapshots != null && !snapshots.isEmpty) {
+                        updateBoardFromFirestore()
+                    }
+                }
+        }
+    }
+
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         if (!gameActive) {
             return false // Se o jogo terminou, não processa mais toques
@@ -138,24 +197,149 @@ class HashView : View {
 
         // Verifica se o ponto já está ocupado
         if (!points.contains(newPoint) && !crosses.contains(newPoint)) {
-            when (event?.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    if (isPoints)
-                        points.add(newPoint)
-                    else
-                        crosses.add(newPoint)
+            val currentUserId = getCurrentUserId()
 
-                    checkForWinner()
+            // Verifica se é o turno do jogador "O"
+            if (isPoints) {
+                isPlayerTurn(currentUserId) { isTurn ->
+                    if (isTurn) {
+                        when (event?.action) {
+                            MotionEvent.ACTION_DOWN -> {
+                                points.add(newPoint)
+                                recordPlayerMove("o", newPoint)
 
-                    isPoints = !isPoints
+                                checkForWinner()
+                                isPoints = !isPoints
 
-                    onTurnChanged?.invoke(isPoints)
-                    invalidate()
-                    return true
+                                // Atualiza o turno no Firestore Database
+                                updateTurnInFirestore(currentUserId)
+
+                                onTurnChanged?.invoke(isPoints)
+                                invalidate()
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Lógica para o jogador "X"
+                isPlayerTurn(currentUserId) { isTurn ->
+                    if (isTurn) {
+                        when (event?.action) {
+                            MotionEvent.ACTION_DOWN -> {
+                                crosses.add(newPoint)
+                                recordPlayerMove("x", newPoint)
+
+                                checkForWinner()
+                                isPoints = !isPoints
+
+                                // Atualiza o turno no Firestore Database
+                                updateTurnInFirestore(currentUserId)
+
+                                onTurnChanged?.invoke(isPoints)
+                                invalidate()
+                            }
+                        }
+                    }
                 }
             }
         }
+
         return false
+    }
+
+    private fun recordPlayerMove(symbol: String, position: Point) {
+        val db = FirebaseFirestore.getInstance()
+        val moveData = hashMapOf(
+            "symbol" to symbol,
+            "position" to listOf(position.x, position.y)
+        )
+
+        // Adicionando a jogada na coleção "jogadas" com um ID de documento automático
+        gameId?.let { gameId ->
+            db.collection("games").document(gameId)
+                .collection("jogadas").add(moveData)
+                .addOnSuccessListener {
+                    Log.d("RecordMove", "Jogada registrada com sucesso")
+                }
+                .addOnFailureListener { e ->
+                    Log.e("RecordMove", "Erro ao registrar a jogada", e)
+                }
+        }
+    }
+
+
+    private fun getCurrentUserId(): String? {
+        val auth = FirebaseAuth.getInstance()
+        val user = auth.currentUser
+        return user?.uid
+    }
+
+    private fun isPlayerTurn(userId: String?, callback: (Boolean) -> Unit) {
+        // Verificar se o userId não é nulo
+        if (userId != null) {
+            val db = FirebaseFirestore.getInstance()
+
+            // Caminho correto usando o ID do jogo
+            val jogoReference = gameId?.let { db.collection("games").document(it) }
+
+            // Obter o valor da variável "turno" no Firestore
+            jogoReference?.get()?.addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val document: DocumentSnapshot? = task.result
+                    if (document != null && document.exists()) {
+                        val turnoAtual = document.getString("turno")
+                        callback(turnoAtual == userId)
+                    }
+                } else {
+                    callback(false)
+                }
+            }
+
+        } else {
+            callback(false)
+        }
+    }
+
+
+    private fun updateTurnInFirestore(currentUserId: String?) {
+        // Verificar se o userId não é nulo
+        if (currentUserId != null) {
+            val db = FirebaseFirestore.getInstance()
+
+            val jogoReference = gameId?.let { db.collection("games").document(it) }
+
+            // Obter o valor das variáveis no Firestore
+            jogoReference?.get()?.addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val document: DocumentSnapshot? = task.result
+                    if (document != null && document.exists()) {
+
+
+                        val turnoAtual = document.getString("turno")
+                        val players = document.get("players") as? List<String>
+                        val idJogador1 = players?.get(0)
+                        val idJogador2 = players?.get(1)
+
+                        // Verificar se o jogo está no estado correto
+                        if (turnoAtual != null && idJogador1 != null && idJogador2 != null) {
+                            // Verificar qual jogador está jogando atualmente
+                            val proximoTurno = if (turnoAtual == idJogador1) idJogador2 else idJogador1
+
+                            // Atualizar a variável "turno" no Firestore com o próximo jogador
+                            jogoReference.update("turno", proximoTurno)
+                                .addOnSuccessListener {
+                                    Log.d("UpdateTurn", "Turno atualizado com sucesso para: $proximoTurno")
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.e("UpdateTurn", "Falha ao atualizar o turno no Firestore", e)
+                                }
+                        }
+                    }
+                } else {
+                    Log.e("UpdateTurn", "Falha ao obter informações do jogo no Firestore", task.exception)
+                }
+            }
+        }
     }
 
     private fun checkForWinner() {
@@ -178,7 +362,7 @@ class HashView : View {
                 gameActive = false
                 Toast.makeText(context, "O ganhou!", Toast.LENGTH_SHORT).show()
                 Handler(Looper.getMainLooper()).postDelayed({
-                    clear()
+                    end()
                 }, 2000)
                 return
             }
@@ -187,7 +371,7 @@ class HashView : View {
                 gameActive = false
                 Toast.makeText(context, "X ganhou!", Toast.LENGTH_SHORT).show()
                 Handler(Looper.getMainLooper()).postDelayed({
-                    clear()
+                    end()
                 }, 2000)
                 return
             }
@@ -197,16 +381,27 @@ class HashView : View {
             gameActive = false
             Toast.makeText(context, "Velha!", Toast.LENGTH_SHORT).show()
             Handler(Looper.getMainLooper()).postDelayed({
-                clear()
+                end()
             }, 2000)
         }
     }
 
-    fun clear(){
-        points.clear()
-        crosses.clear()
-        gameActive = true
-        invalidate()
+
+    // Interface para o callback
+    interface OnGameEndListener {
+        fun onGameEnd()
+    }
+
+    private var gameEndListener: OnGameEndListener? = null
+
+    // Método para definir o listener
+    fun setOnGameEndListener(listener: OnGameEndListener) {
+        gameEndListener = listener
+    }
+
+    fun end() {
+        // Notificar a HashActivity que o jogo deve ser finalizado
+        gameEndListener?.onGameEnd()
     }
 
 

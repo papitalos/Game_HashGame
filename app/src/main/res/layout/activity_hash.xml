@@ -7,7 +7,7 @@
     tools:context=".MainActivity">
 
     <ipca.game.hash.HashView
-        android:id="@+id/hashView14"
+        android:id="@+id/hashViewGame"
         android:layout_width="380dp"
         android:layout_height="380dp"
         app:layout_constraintBottom_toBottomOf="parent"
