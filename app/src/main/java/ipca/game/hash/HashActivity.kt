@@ -28,6 +28,7 @@ class HashActivity : AppCompatActivity(), HashView.OnGameEndListener {
 
         // Definir o listener para o evento de finalização do jogo
         hashView.setOnGameEndListener(this)
+        setupGameEndListener()
     }
     override fun onGameEnd() {
         val gameId = intent.getStringExtra("gameId") ?: return
@@ -54,6 +55,23 @@ class HashActivity : AppCompatActivity(), HashView.OnGameEndListener {
                     Log.e("HashActivity", "Erro ao deletar jogo", e)
                 }
         }
+    }
+
+    private fun setupGameEndListener() {
+        val gameId = intent.getStringExtra("gameId") ?: return
+        FirebaseFirestore.getInstance().collection("games").document(gameId)
+            .addSnapshotListener { documentSnapshot, e ->
+                if (e != null) {
+                    Log.e("HashActivity", "Erro ao escutar mudanças no jogo", e)
+                    return@addSnapshotListener
+                }
+                if (documentSnapshot != null && documentSnapshot.exists()) {
+                    val gameEnded = documentSnapshot.getBoolean("gameEnded") ?: false
+                    if (gameEnded) {
+                        finish() // Fecha a HashActivity e retorna para MainActivity
+                    }
+                }
+            }
     }
 }
 

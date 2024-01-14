@@ -135,7 +135,8 @@ class JoinFragment : Fragment() {
                             "gameId" to gameId,
                             "players" to listOf(invite.inviterId, invite.invitedId),
                             "turno" to invite.inviterId,
-                            "simbolo" to "o" //jogo sempre começa com o
+                            "simbolo" to "o",
+                            "gameEnded" to false//jogo sempre começa com o
                         )
 
                         // Use o próprio ID gerado como nome do documento

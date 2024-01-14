@@ -238,20 +238,7 @@ class HashView : View {
         return false
     }
 
-    private fun getCurrentSymbolFromFirestore(callback: (String) -> Unit) {
-        Log.d("HashView", "Get")
-        gameId?.let { gameId ->
-            FirebaseFirestore.getInstance().collection("games").document(gameId)
-                .get()
-                .addOnSuccessListener { document ->
-                    val currentSymbol = document.getString("simbolo") ?: "o" // Padrão para "o" se não encontrado
-                    callback(currentSymbol)
-                }
-                .addOnFailureListener { e ->
-                    Log.e("HashView", "Erro ao buscar o símbolo atual", e)
-                }
-        }
-    }
+
     private fun updateSymbolInFirestore(nextSymbol: String) {
         Log.d("HashView", "Update")
         gameId?.let { gameId ->
@@ -292,45 +279,6 @@ class HashView : View {
         val user = auth.currentUser
         return user?.uid
     }
-
-    private fun isPlayerTurn(userId: String?, callback: (Boolean) -> Unit) {
-        Log.d("HashView", "isPlayerTurn: Verificando se é a vez do jogador $userId")
-
-        // Verificar se o userId não é nulo
-        if (userId != null) {
-            val db = FirebaseFirestore.getInstance()
-
-            // Caminho correto usando o ID do jogo
-            val jogoReference = gameId?.let { db.collection("games").document(it) }
-
-            Log.d("HashView", "isPlayerTurn: Acessando o documento do jogo $gameId")
-
-            // Obter o valor da variável "turno" no Firestore
-            jogoReference?.get()?.addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    val document: DocumentSnapshot? = task.result
-                    if (document != null && document.exists()) {
-                        val turnoAtual = document.getString("turno")
-                        Log.d("HashView", "isPlayerTurn: Turno atual no Firestore é de $turnoAtual")
-
-                        val isTurn = turnoAtual == userId
-                        Log.d("HashView", "isPlayerTurn: É a vez do jogador $userId? $isTurn")
-                        callback(isTurn)
-                    } else {
-                        Log.d("HashView", "isPlayerTurn: Documento não encontrado ou não existe")
-                        callback(false)
-                    }
-                } else {
-                    Log.e("HashView", "isPlayerTurn: Falha ao obter informações do jogo", task.exception)
-                    callback(false)
-                }
-            }
-        } else {
-            Log.d("HashView", "isPlayerTurn: userId é nulo")
-            callback(false)
-        }
-    }
-
 
 
     private fun updateTurnInFirestore(currentUserId: String?) {
@@ -431,8 +379,21 @@ class HashView : View {
         gameEndListener = listener
     }
 
+    fun signalGameEnd() {
+        gameId?.let { gameId ->
+            FirebaseFirestore.getInstance().collection("games").document(gameId)
+                .update("gameEnded", true)
+                .addOnSuccessListener {
+                    Log.d("HashView", "Sinalização de fim de jogo enviada")
+                }
+                .addOnFailureListener { e ->
+                    Log.e("HashView", "Erro ao sinalizar fim de jogo", e)
+                }
+        }
+    }
+
     fun end() {
-        // Notificar a HashActivity que o jogo deve ser finalizado
+        signalGameEnd() // Sinaliza o fim do jogo
         gameEndListener?.onGameEnd()
     }
 
