@@ -134,7 +134,8 @@ class JoinFragment : Fragment() {
                         val gameData = hashMapOf(
                             "gameId" to gameId,
                             "players" to listOf(invite.inviterId, invite.invitedId),
-                            "turno" to invite.inviterId
+                            "turno" to invite.inviterId,
+                            "simbolo" to "o" //jogo sempre começa com o
                         )
 
                         // Use o próprio ID gerado como nome do documento

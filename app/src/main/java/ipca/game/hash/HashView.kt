@@ -28,15 +28,32 @@ class HashView : View {
 
     private var gameId: String? = ""
     private var turno: String? = ""
+    private var currentSymbol: String = "o" // Valor padrão
+    private var currentPlayerTurn: String? = null
 
-    fun setGameInfo(gameId: String?, turno: String?) {
+    fun setGameInfo(gameId: String?) {
         this.gameId = gameId
-        this.turno = turno
+        Log.d("HashView", "My gameId is: $gameId")
 
         setupBoardListener()
+        setupGameListeners()
     }
-    fun setOnTurnChanged (callback: (Boolean)->Unit) {
-        onTurnChanged = callback
+    fun setupGameListeners() {
+        val db = FirebaseFirestore.getInstance()
+        gameId?.let { gameId ->
+            // Listener para mudanças no símbolo
+            db.collection("games").document(gameId)
+                .addSnapshotListener { documentSnapshot, e ->
+                    if (e != null) {
+                        Log.e("HashView", "Erro ao escutar mudanças no jogo", e)
+                        return@addSnapshotListener
+                    }
+                    if (documentSnapshot != null && documentSnapshot.exists()) {
+                        currentSymbol = documentSnapshot.getString("simbolo") ?: "o"
+                        currentPlayerTurn = documentSnapshot.getString("turno")
+                    }
+                }
+        }
     }
 
     constructor(context: Context?) : super(context)
@@ -193,58 +210,60 @@ class HashView : View {
             qy = 1
         }
 
+
         val newPoint = Point(qx, qy)
+        val currentUserId = getCurrentUserId()
 
-        // Verifica se o ponto já está ocupado
-        if (!points.contains(newPoint) && !crosses.contains(newPoint)) {
-            val currentUserId = getCurrentUserId()
-
-            // Verifica se é o turno do jogador "O"
-            if (isPoints) {
-                isPlayerTurn(currentUserId) { isTurn ->
-                    if (isTurn) {
-                        when (event?.action) {
-                            MotionEvent.ACTION_DOWN -> {
-                                points.add(newPoint)
-                                recordPlayerMove("o", newPoint)
-
-                                checkForWinner()
-                                isPoints = !isPoints
-
-                                // Atualiza o turno no Firestore Database
-                                updateTurnInFirestore(currentUserId)
-
-                                onTurnChanged?.invoke(isPoints)
-                                invalidate()
-                            }
-                        }
+        // Verifica se o ponto já está ocupado e se é a vez do jogador
+        if (!points.contains(newPoint) && !crosses.contains(newPoint) && currentPlayerTurn == currentUserId) {
+            when (event?.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    if (currentSymbol == "o") {
+                        points.add(newPoint)
+                        recordPlayerMove("o", newPoint)
+                        updateSymbolInFirestore("x") // Atualizar para o próximo símbolo
+                    } else if (currentSymbol == "x") {
+                        crosses.add(newPoint)
+                        recordPlayerMove("x", newPoint)
+                        updateSymbolInFirestore("o") // Atualizar para o próximo símbolo
                     }
-                }
-            } else {
-                // Lógica para o jogador "X"
-                isPlayerTurn(currentUserId) { isTurn ->
-                    if (isTurn) {
-                        when (event?.action) {
-                            MotionEvent.ACTION_DOWN -> {
-                                crosses.add(newPoint)
-                                recordPlayerMove("x", newPoint)
 
-                                checkForWinner()
-                                isPoints = !isPoints
-
-                                // Atualiza o turno no Firestore Database
-                                updateTurnInFirestore(currentUserId)
-
-                                onTurnChanged?.invoke(isPoints)
-                                invalidate()
-                            }
-                        }
-                    }
+                    checkForWinner()
+                    updateTurnInFirestore(currentUserId) // Atualiza o turno no Firestore Database
+                    invalidate() // Redesenhar
                 }
             }
         }
 
         return false
+    }
+
+    private fun getCurrentSymbolFromFirestore(callback: (String) -> Unit) {
+        Log.d("HashView", "Get")
+        gameId?.let { gameId ->
+            FirebaseFirestore.getInstance().collection("games").document(gameId)
+                .get()
+                .addOnSuccessListener { document ->
+                    val currentSymbol = document.getString("simbolo") ?: "o" // Padrão para "o" se não encontrado
+                    callback(currentSymbol)
+                }
+                .addOnFailureListener { e ->
+                    Log.e("HashView", "Erro ao buscar o símbolo atual", e)
+                }
+        }
+    }
+    private fun updateSymbolInFirestore(nextSymbol: String) {
+        Log.d("HashView", "Update")
+        gameId?.let { gameId ->
+            FirebaseFirestore.getInstance().collection("games").document(gameId)
+                .update("simbolo", nextSymbol)
+                .addOnSuccessListener {
+                    Log.d("UpdateSymbol", "Símbolo atualizado com sucesso para: $nextSymbol")
+                }
+                .addOnFailureListener { e ->
+                    Log.e("UpdateSymbol", "Falha ao atualizar o símbolo no Firestore", e)
+                }
+        }
     }
 
     private fun recordPlayerMove(symbol: String, position: Point) {
@@ -275,6 +294,8 @@ class HashView : View {
     }
 
     private fun isPlayerTurn(userId: String?, callback: (Boolean) -> Unit) {
+        Log.d("HashView", "isPlayerTurn: Verificando se é a vez do jogador $userId")
+
         // Verificar se o userId não é nulo
         if (userId != null) {
             val db = FirebaseFirestore.getInstance()
@@ -282,23 +303,34 @@ class HashView : View {
             // Caminho correto usando o ID do jogo
             val jogoReference = gameId?.let { db.collection("games").document(it) }
 
+            Log.d("HashView", "isPlayerTurn: Acessando o documento do jogo $gameId")
+
             // Obter o valor da variável "turno" no Firestore
             jogoReference?.get()?.addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     val document: DocumentSnapshot? = task.result
                     if (document != null && document.exists()) {
                         val turnoAtual = document.getString("turno")
-                        callback(turnoAtual == userId)
+                        Log.d("HashView", "isPlayerTurn: Turno atual no Firestore é de $turnoAtual")
+
+                        val isTurn = turnoAtual == userId
+                        Log.d("HashView", "isPlayerTurn: É a vez do jogador $userId? $isTurn")
+                        callback(isTurn)
+                    } else {
+                        Log.d("HashView", "isPlayerTurn: Documento não encontrado ou não existe")
+                        callback(false)
                     }
                 } else {
+                    Log.e("HashView", "isPlayerTurn: Falha ao obter informações do jogo", task.exception)
                     callback(false)
                 }
             }
-
         } else {
+            Log.d("HashView", "isPlayerTurn: userId é nulo")
             callback(false)
         }
     }
+
 
 
     private fun updateTurnInFirestore(currentUserId: String?) {

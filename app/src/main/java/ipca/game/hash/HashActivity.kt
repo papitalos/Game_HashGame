@@ -14,13 +14,12 @@ class HashActivity : AppCompatActivity(), HashView.OnGameEndListener {
         setContentView(R.layout.activity_hash)
 
         val gameId = intent.getStringExtra("gameId") ?: return
-        val turno = intent.getStringExtra("turno") ?: return
 
         // Inicializa hashView corretamente
         hashView = findViewById<HashView>(R.id.hashViewGame)
 
         // Configura as informações do jogo com base no que foi passado pelo Intent
-        hashView.setGameInfo(gameId, turno)
+        hashView.setGameInfo(gameId)
 
         val buttonHome = findViewById<Button>(R.id.idButtonHome)
         buttonHome.setOnClickListener {

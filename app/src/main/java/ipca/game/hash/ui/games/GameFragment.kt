@@ -63,9 +63,10 @@ class GameFragment : Fragment() {
                 val id1 = doc.getString("id1")
                 val id2 = doc.getString("id2")
                 val turno = doc.getString("turno")
+                val simbolo = doc.getString("simbolo")
 
                 // Crie uma instância de Game e adicione à lista
-                val game = Game(gameId, id1, id2, turno)
+                val game = Game(gameId, id1, id2, turno, simbolo)
                 existing_games.add(game)
             }
 
@@ -134,24 +135,21 @@ class GameFragment : Fragment() {
 
             buttonJoinGame.setOnClickListener {
                 val game = getItem(position) as Game
-                loadGameAndStartHashActivity(game.gameId)
+                loadGame(game.gameId)
             }
 
             return rootView
         }
     }
 
-    private fun loadGameAndStartHashActivity(gameId: String?) {
+    private fun loadGame(gameId: String?) {
         val gamesCollection = FirebaseFirestore.getInstance().collection("games")
         if (gameId != null) {
             gamesCollection.document(gameId).get().addOnSuccessListener { document ->
                 if (document != null && document.exists()) {
-                    val gameData = document.data
-                    val currentTurn = gameData?.get("turno") as? String
 
                     val intent = Intent(context, HashActivity::class.java)
                     intent.putExtra("gameId", gameId)
-                    intent.putExtra("turno", currentTurn)
                     context?.startActivity(intent)
                 } else {
                     Log.d(TAG, "Nenhum jogo encontrado com ID: $gameId")
